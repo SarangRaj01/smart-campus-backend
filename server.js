@@ -87,7 +87,52 @@ app.post('/api/lost-items', (req, res) => {
         }
     );
 });
+// GET: Fetch all found items
+app.get('/api/found-items', (req, res) => {
+    const query = `
+        SELECT 
+            f.found_id,
+            u.full_name AS finder_name,
+            c.category_name,
+            loc.building_name,
+            f.brand,
+            f.primary_color,
+            f.date_found,
+            f.description
+        FROM FOUND_ITEMS f
+        JOIN USERS u ON f.finder_user_id = u.user_id
+        JOIN CATEGORIES c ON f.category_id = c.category_id
+        JOIN LOCATIONS loc ON f.location_id = loc.location_id
+        ORDER BY f.date_found DESC;
+    `;
 
+    db.query(query, (err, results) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        res.json(results);
+    });
+});
+
+// POST: Report a found item
+app.post('/api/found-items', (req, res) => {
+    const { finder_user_id, category_id, location_id, brand, primary_color, date_found, description } = req.body;
+
+    const query = `
+        INSERT INTO FOUND_ITEMS 
+        (finder_user_id, category_id, location_id, brand, primary_color, date_found, description)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    `;
+
+    db.query(
+        query, 
+        [finder_user_id, category_id, location_id, brand, primary_color, date_found, description],
+        (err, result) => {
+            if (err) return res.status(500).json({ error: err.message });
+            res.status(201).json({ message: 'Found item logged successfully!', insertId: result.insertId });
+        }
+    );
+});
 // 5. Start Server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
